@@ -16,26 +16,21 @@
   (loop [remain parsed
          result {}]
     (if (empty? remain) result
-     (let [current-line          (first (first remain))
+     (let [current-line (first remain)
            [line-type line-data] current-line]
       (case line-type
         :Normal (recur (rest remain) result)
         :Special (case (first line-data)
                    :KeyValuePair 
                    (recur (rest remain)
-                          (into result (transform line-data))
-                          )
-
-
+                          (into result (transform line-data)))
                    ))))))
 
-(def line-parser 
-  (insta/parser
-    (clojure.java.io/resource "archie.bnf")))
-
+(def line-parser (insta/parser (clojure.java.io/resource "archie.bnf")))
 
 (defn archie-parser [input]
   (->> input
        (clojure.string/split-lines)
        (map line-parser)
+       (map first)
        (interpret)))
