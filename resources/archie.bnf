@@ -1,0 +1,9 @@
+<ArchieLine> = Normal | Special
+Special      = KeyValuePair
+KeyValuePair = <WhiteSpace>* Key <WhiteSpace>* <':'> <WhiteSpace>* Value <WhiteSpace>*
+Value        = (ValueWord (WhiteSpace+ ValueWord)*) WhiteSpace*
+<ValueWord>  = #'[^\r\n\s\t]+'
+<WhiteSpace> = #"[\t\s]"
+Key          = #'[\w\-]+'
+Normal       = AnyValue
+AnyValue     = #".*"
