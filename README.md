@@ -1,6 +1,6 @@
 # Jughead
 
-A Clojure ArchieML Interpreter using Instaparse
+A Clojure ArchieML parser using Instaparse
 
 ## Usage
 
