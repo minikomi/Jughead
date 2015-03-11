@@ -7,10 +7,26 @@
 
 (defn transform [data]
   (insta/transform
-    {:KeyValuePair hash-map
-     :Key keyword
+    {:KeyValuePair vector
+     :Key (fn [& keystrings] (mapv keyword keystrings))
      :Value str}
     data))
+
+
+(defn archie-assoc [m k v]
+  "Same as clojure assoc unless the map is non-associative - in which case
+   a new map containing just key / value is returned."
+  (if (associative? m)
+    (assoc m k v)
+    {k v}))
+
+(defn archie-assoc-in
+  "Similar to clojure's base assoc-in but replaces non-associatives with
+   maps rather than erroring out."
+  [m [k & ks] v]
+  (if ks
+      (safe-assoc m k (safe-assoc-in (get m k) ks v))
+      (safe-assoc m k v)))
 
 (defn interpret [parsed]
   (loop [remain parsed
@@ -23,8 +39,11 @@
         :Special (case (first line-data)
                    :KeyValuePair 
                    (recur (rest remain)
-                          (into result (transform line-data)))
+                          (let [[kg v] (transform line-data)]
+                            (safe-assoc-in result kg v)))
                    ))))))
+
+
 
 (def line-parser (insta/parser (clojure.java.io/resource "archie.bnf")))
 

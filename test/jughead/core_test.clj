@@ -4,7 +4,7 @@
   (:use midje.sweet))
 
 
-(facts "parsing values"
+(facts "Parsing values"
        (fact "archiparsers key : value pairs"
              (archie-parser "key:value")
               => {:key "value"})
@@ -41,3 +41,46 @@
        (fact "Non-keys don't affect parsing"
              (archie-parser "other stuff\nkey:value\nother stuff")
               => {:key "value"}))
+
+(facts "Valid keys"
+
+       (fact "letters, numbers, dashes and underscores are valid key components"
+             (archie-parser "a-_1:value")
+             => {:a-_1 "value"})
+
+
+       (fact "spaces are not allowed in keys"
+             (-> "k ey:value" archie-parser keys count)
+             => 0)
+
+       (fact "symbols are not allowed in keys"
+            (-> "k&ey:value" archie-parser keys count)
+            => 0)
+
+       (fact "keys can be nested using dot-notation"
+             (-> "scope.key:value" archie-parser)
+             => {:scope {:key "value"}})
+
+       (fact "earlier keys within scopes aren't deleted when using dot-notation"
+             (-> "scope.key:value\nscope.otherkey:value"
+                 archie-parser
+                 :scope
+                 :key)
+             => "value")
+
+       (fact "the value of key that used to be a string object should be replaced with an object if necessary" 
+             (-> "scope.level:value\nscope.level.level:value"
+                 archie-parser
+                 :scope
+                 :level
+                 :level)
+             => "value")
+
+       (fact "the value of key that used to be a parent object should be replaced with a string if necessary" 
+         (-> "scope.level.level:value\nscope.level:value"
+             archie-parser
+             :scope
+             :level)
+         => "value")
+
+       )
