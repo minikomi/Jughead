@@ -12,36 +12,35 @@
      :Value str}
     data))
 
-
 (defn archie-assoc [m k v]
   "Same as clojure assoc unless the map is non-associative - in which case
-   a new map containing just key / value is returned."
+  a new map containing just key / value is returned."
   (if (associative? m)
     (assoc m k v)
     {k v}))
 
 (defn archie-assoc-in
   "Similar to clojure's base assoc-in but replaces non-associatives with
-   maps rather than erroring out."
+  maps rather than erroring out."
   [m [k & ks] v]
   (if ks
-      (safe-assoc m k (safe-assoc-in (get m k) ks v))
-      (safe-assoc m k v)))
+    (archie-assoc m k (archie-assoc-in (get m k) ks v))
+    (archie-assoc m k v)))
 
 (defn interpret [parsed]
   (loop [remain parsed
          result {}]
     (if (empty? remain) result
-     (let [current-line (first remain)
-           [line-type line-data] current-line]
-      (case line-type
-        :Normal (recur (rest remain) result)
-        :Special (case (first line-data)
-                   :KeyValuePair 
-                   (recur (rest remain)
-                          (let [[kg v] (transform line-data)]
-                            (safe-assoc-in result kg v)))
-                   ))))))
+      (let [current-line (first remain)
+            [line-type line-data] current-line]
+        (case line-type
+          :Normal (recur (rest remain) result)
+          :Special (case (first line-data)
+                     :KeyValuePair 
+                     (recur (rest remain)
+                            (let [[kg v] (transform line-data)]
+                              (archie-assoc-in result kg v)))
+                     ))))))
 
 
 
