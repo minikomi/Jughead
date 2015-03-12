@@ -1,10 +1,20 @@
 <ArchieLine> = Normal | Special
-Special      = KeyValuePair
+Special      = KeyValuePair | Skip | EndSkip
+
+(* Key Value Pair *)
 KeyValuePair = <WhiteSpace>* Key <WhiteSpace>* <':'> <WhiteSpace>* Value <WhiteSpace>*
 Value        = (ValueWord (WhiteSpace+ ValueWord)*) WhiteSpace*
 <ValueWord>  = #'[^\r\n\s\t]+'
-<WhiteSpace> = #"[\t\s]"
 Key          = KeyPart (<'.'> KeyPart)*
 <KeyPart>    = #'[\w\-]+'
-Normal       = AnyValue
+
+(* Skip / Endskip *)
+Skip    = WhiteSpace* <#'(?i):skip'> WhiteSpace* <AnyValue>
+EndSkip = WhiteSpace* <#'(?i):endskip'> WhiteSpace* <AnyValue>
+
+(* Normal *)
+Normal = AnyValue
+
+(* Utility *)
 AnyValue     = #".*"
+<WhiteSpace> = #"[\t\s]"

@@ -40,15 +40,25 @@
                      (recur (rest remain)
                             (let [[kg v] (transform line-data)]
                               (archie-assoc-in result kg v)))
+                     :Skip 
+                     (recur (rest (drop-while #(not (= :EndSkip (-> % second first))) remain))
+                            result
+                            )
+
+                     (str "Unknown Special Case: " (first line-data))
                      ))))))
 
 
 
 (def line-parser (insta/parser (clojure.java.io/resource "archie.bnf")))
 
-(defn parse [input]
-  (->> input
+(defn parse-all-lines [input]
+  (->> input 
        (clojure.string/split-lines)
        (map line-parser)
-       (map first)
+       (map first)))
+
+(defn parse [input]
+  (->> input
+       (parse-all-lines)
        (interpret)))

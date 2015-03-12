@@ -120,7 +120,7 @@
 
 
        (fact "parse :endskip as a special command even if more is appended to word" 
-             (=> ":skip\n:endskiptheabove\nkey:value" parse :key)
+             (-> ":skip\n:endskiptheabove\nkey:value" parse :key)
              => "value")
 
        (fact "ignores all content on line after :endskip + space"
