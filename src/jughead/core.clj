@@ -42,10 +42,10 @@
                               (archie-assoc-in result kg v)))
                      :Skip 
                      (recur (rest (drop-while #(not (= :EndSkip (-> % second first))) remain))
-                            result
-                            )
-
-                     (str "Unknown Special Case: " (first line-data))
+                            result)
+                     :Ignore
+                     result
+                     (throw (Exception. "Unexpected :Special case"))
                      ))))))
 
 
