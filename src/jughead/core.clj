@@ -27,41 +27,85 @@
     (archie-assoc m k (archie-assoc-in (get m k) ks v))
     (archie-assoc m k v)))
 
-(defn generate-keygroup-and-value [initial-line-data remain]
-  (let [[kg initial-value] (transform initial-line-data)]
-    (loop [buffer [initial-value] new-remain remain]
-      (if (empty? new-remain) [kg initial-value (rest remain)]
-        (let [[line-type line-data] (first new-remain)]
-          (if (= :Special line-type)
-            (if (= :End (-> line-data first))
-              [kg (clojure.string/join "\n" buffer) (rest new-remain)]
-              [kg initial-value (rest remain)])
-            (recur (conj buffer (second line-data))
-                   (rest new-remain))))))))
-
 (defn special-tag-isnt [tag]
   #(not (= tag (-> % second first))))
 
+(defn remove-until-endskip [remain]
+  (rest (drop-while (special-tag-isnt :EndSkip) remain)))
+
 (defn interpret [parsed]
-  (loop [remain parsed
-         result {}]
-    (if (empty? remain) result
-      (let [current-line (first remain)
-            [line-type line-data] current-line]
+  (loop [remain parsed    ; remaining lines to interpret
+         result {}        ; map to return
+         mode   :normal   ; current parsing mode
+         state  {}]       ; current parsing state
+
+    (if (empty? remain) 
+      (case mode
+        :keyblock
+        (archie-assoc-in result (:keygroup state) (:original-value state))
+        result)
+      (let [[line-type line-data] (first remain)]
         (case line-type
-          :Normal (recur (rest remain) result)
-          :Special (case (first line-data)
-                     :KeyValuePair 
-                     (let [[kg v new-remain] (generate-keygroup-and-value line-data (rest remain))]
-                       (recur new-remain
-                              (archie-assoc-in result kg v)))
-                     :Skip 
-                     (recur (rest (drop-while (special-tag-isnt :EndSkip) remain))
-                            result)
-                     :Ignore
-                     result
-                     (throw (Exception. "Unexpected :Special case"))
-                     ))))))
+          :Normal
+          ; --------------------------------------------------------------------
+          (case mode
+            ; keyblock mode
+            ; - need to buffer
+            ; - in case we encouter an :end
+            ; - remove leading slash
+            :keyblock
+            (recur (rest remain) 
+                   result 
+                   :keyblock
+                   (update-in state [:buffer]
+                              conj (clojure.string/replace line-data "^\\" "")))
+            ; default
+            ; - don't buffer.
+            (recur (rest remain) result mode state))
+
+          :Special
+          ; --------------------------------------------------------------------
+          (case (first line-data)
+
+            :Skip 
+            ; - drop until :endskip
+            (recur (remove-until-endskip remain) result mode state)
+
+            :Ignore
+            ; - escape hatch
+            (case mode
+              :keyblock
+              ; - keep the last key we found.
+              (archie-assoc-in result (:keygroup state) (:original-value state))
+              result)
+
+            :KeyValuePair 
+            ; - reset state, enter keyblock mode
+            (let [[kg v] (transform line-data)
+                  new-result (case mode
+                               :keyblock
+                               ; - we didn't reach an :end and need to
+                               ;   assign just the first line value to the key.
+                               (archie-assoc-in result (:keygroup state) (:original-value state))
+                               result)]
+              (println new-result)
+              (recur (rest remain)
+                     new-result
+                     :keyblock
+                     {:buffer [] :keygroup kg :original-value v}))
+            :End
+              (recur (rest remain) result mode state)
+              (throw (Exception. "Unexpected :Special case"))))
+
+
+
+
+
+
+
+
+
+        ))))
 
 
 
