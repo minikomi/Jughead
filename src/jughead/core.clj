@@ -1,5 +1,7 @@
 (ns jughead.core
-  (:require [instaparse.core :as insta]))
+  (:require [instaparse.core :as insta]
+            [clojure.string :as s]
+            ))
 
 
 (defn value-group-to-string [value-group]
@@ -44,7 +46,7 @@
       ; ------------------------------------------------------------------------
       (if (empty? remain) 
         ; keep the last key value pair which was found
-        (archie-assoc-in result (:keygroup state) (:original-value state))
+        (archie-assoc-in result (:keygroup state) (s/trim (:original-value state)))
         (let [[line-type line-data] (first remain)]
           (case line-type
             :Normal
@@ -53,7 +55,7 @@
                    result 
                    :keyblock
                    (update-in state [:buffer]
-                              conj (clojure.string/replace (second line-data) "^\\" "")))
+                              conj (s/replace (second line-data) #"^\\" "")))
 
             :Special
             ; ------------------------------------------------------------------
@@ -71,7 +73,7 @@
               :KeyValuePair 
               ; - reset state, enter keyblock mode
               (let [[kg v] (transform line-data)
-                    new-result (archie-assoc-in result (:keygroup state) (:original-value state))]
+                    new-result (archie-assoc-in result (:keygroup state) (s/trim (:original-value state)))]
                 (recur (rest remain) new-result :keyblock
                        {:buffer [] :keygroup kg :original-value v}))
               :End
@@ -79,10 +81,13 @@
                      (let [{:keys [buffer keygroup original-value]} state] 
                        (archie-assoc-in result 
                                         keygroup
-                                        (str original-value "\n"
-                                             (clojure.string/join "\n" buffer))))
+                                        (s/trim
+                                         (str original-value "\n"
+                                             (s/join "\n" buffer)))))
                      :normal
                      {})
+              :EndSkip 
+              (recur (rest remain) result mode state)
               (throw (Exception. "Unexpected :Special case"))))))
 
       ; default
@@ -113,6 +118,8 @@
                      {:buffer [] :keygroup kg :original-value v}))
             :End
             (recur (rest remain) result mode state)
+            :EndSkip 
+            (recur (rest remain) result mode state)
             (throw (Exception. "Unexpected :Special case")))))))))
 
 
@@ -120,7 +127,7 @@
 
 (defn parse-all-lines [input]
   (->> input 
-       clojure.string/split-lines
+       s/split-lines
        (map line-parser)
        (map first)))
 

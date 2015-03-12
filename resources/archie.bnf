@@ -2,7 +2,7 @@
 Special      = KeyValuePair | End | Skip | EndSkip | Ignore
 
 (* Key Value Pair *)
-KeyValuePair = <WhiteSpace>* Key <WhiteSpace>* <':'> <WhiteSpace>* Value <WhiteSpace>*
+KeyValuePair = <WhiteSpace>* Key <WhiteSpace>* <':'> <WhiteSpace>* Value
 Value        = (ValueWord (WhiteSpace+ ValueWord)*) WhiteSpace*
 <ValueWord>  = #'[^\r\n\s\t]+'
 Key          = KeyPart (<'.'> KeyPart)*
@@ -17,7 +17,7 @@ EndSkip = WhiteSpace* <#'(?i):endskip'> WhiteSpace* <AnyValue>
 Ignore = WhiteSpace* <#'(?i):ignore'> WhiteSpace* <AnyValue>
 
 (* Normal *)
-Normal = AnyValue
+Normal = AnyValue WhiteSpace*
 
 (* Utility *)
 AnyValue     = #".*"
