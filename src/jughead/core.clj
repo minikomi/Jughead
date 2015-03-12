@@ -53,7 +53,7 @@
                    result 
                    :keyblock
                    (update-in state [:buffer]
-                              conj (clojure.string/replace line-data "^\\" "")))
+                              conj (clojure.string/replace (second line-data) "^\\" "")))
 
             :Special
             ; ------------------------------------------------------------------
@@ -81,7 +81,7 @@
                                       (clojure.string/join
                                         (into [(:original-value state)] 
                                               (:buffer state)))) 
-                     :normal 
+                     :normal
                      {})
               (throw (Exception. "Unexpected :Special case"))))))
 
