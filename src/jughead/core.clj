@@ -38,74 +38,82 @@
          result {}        ; map to return
          mode   :normal   ; current parsing mode
          state  {}]       ; current parsing state
-
-    (if (empty? remain) 
-      (case mode
-        :keyblock
+    (case mode
+      :keyblock
+      ; Buffering normal lines until we hit an :end or other special case.
+      ; ------------------------------------------------------------------------
+      (if (empty? remain) 
+        ; keep the last key value pair which was found
         (archie-assoc-in result (:keygroup state) (:original-value state))
-        result)
-      (let [[line-type line-data] (first remain)]
-        (case line-type
-          :Normal
-          ; --------------------------------------------------------------------
-          (case mode
-            ; keyblock mode
-            ; - need to buffer
-            ; - in case we encouter an :end
-            ; - remove leading slash
-            :keyblock
+        (let [[line-type line-data] (first remain)]
+          (case line-type
+            :Normal
+            ; ------------------------------------------------------------------
             (recur (rest remain) 
                    result 
                    :keyblock
                    (update-in state [:buffer]
                               conj (clojure.string/replace line-data "^\\" "")))
-            ; default
-            ; - don't buffer.
-            (recur (rest remain) result mode state))
 
+            :Special
+            ; ------------------------------------------------------------------
+            (case (first line-data)
+
+              :Skip 
+              ; - drop until :endskip
+              (recur (remove-until-endskip remain) result mode state)
+
+              :Ignore
+              ; - escape hatch
+              ; - keep the last key we found.
+              (archie-assoc-in result (:keygroup state) (:original-value state))
+
+              :KeyValuePair 
+              ; - reset state, enter keyblock mode
+              (let [[kg v] (transform line-data)
+                    new-result (archie-assoc-in result (:keygroup state) (:original-value state))]
+                (recur (rest remain) new-result :keyblock
+                       {:buffer [] :keygroup kg :original-value v}))
+              :End
+              (recur (rest remain) 
+                     (archie-assoc-in result
+                                      (:keygroup state)
+                                      (clojure.string/join
+                                        (into [(:original-value state)] 
+                                              (:buffer state)))) 
+                     :normal 
+                     {})
+              (throw (Exception. "Unexpected :Special case"))))))
+
+      ; default
+      ; ------------------------------------------------------------------------
+      (if (empty? remain) result
+        (let [[line-type line-data] (first remain)]
+        (case line-type
+          :Normal
+          ; --------------------------------------------------------------------
+          (recur (rest remain) result mode state)
           :Special
           ; --------------------------------------------------------------------
           (case (first line-data)
-
             :Skip 
             ; - drop until :endskip
             (recur (remove-until-endskip remain) result mode state)
 
             :Ignore
             ; - escape hatch
-            (case mode
-              :keyblock
-              ; - keep the last key we found.
-              (archie-assoc-in result (:keygroup state) (:original-value state))
-              result)
+            result
 
             :KeyValuePair 
             ; - reset state, enter keyblock mode
-            (let [[kg v] (transform line-data)
-                  new-result (case mode
-                               :keyblock
-                               ; - we didn't reach an :end and need to
-                               ;   assign just the first line value to the key.
-                               (archie-assoc-in result (:keygroup state) (:original-value state))
-                               result)]
+            (let [[kg v] (transform line-data)]
               (recur (rest remain)
-                     new-result
+                     result
                      :keyblock
                      {:buffer [] :keygroup kg :original-value v}))
             :End
-              (recur (rest remain) result mode state)
-              (throw (Exception. "Unexpected :Special case"))))
-
-
-
-
-
-
-
-
-
-        ))))
-
+            (recur (rest remain) result mode state)
+            (throw (Exception. "Unexpected :Special case")))))))))
 
 
 (def line-parser (insta/parser (clojure.java.io/resource "archie.bnf")))
