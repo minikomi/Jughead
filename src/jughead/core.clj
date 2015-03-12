@@ -88,7 +88,6 @@
                                ;   assign just the first line value to the key.
                                (archie-assoc-in result (:keygroup state) (:original-value state))
                                result)]
-              (println new-result)
               (recur (rest remain)
                      new-result
                      :keyblock
