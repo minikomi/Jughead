@@ -46,7 +46,7 @@
 
 (def line-parser (insta/parser (clojure.java.io/resource "archie.bnf")))
 
-(defn archie-parser [input]
+(defn parse [input]
   (->> input
        (clojure.string/split-lines)
        (map line-parser)

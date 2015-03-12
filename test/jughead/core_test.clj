@@ -6,81 +6,137 @@
 
 (facts "Parsing values"
        (fact "archiparsers key : value pairs"
-             (archie-parser "key:value")
-              => {:key "value"})
+             (-> "key:value" parse :key) 
+             => "value")
 
        (fact "Ignores spaces on either side of the key"
-             (archie-parser "  key  :value") 
-              => {:key "value"})
+             (-> "  key  :value" parse :key) 
+             => "value")
 
        (fact "Ignores tabs on eight side of the key"
-             (archie-parser "\t\tkey\t\t:value")
-              => {:key "value"})
+             (-> "\t\tkey\t\t:value" parse :key)
+             => "value")
 
        (fact "Ignores spaces on eight side of the value"
-             (archie-parser "key:  value  ")
-              => {:key "value"})
+             (-> "key:  value  " parse :key)
+             => "value")
 
        (fact "Ignores tabs on either side of the value"
-             (archie-parser "key:\t\tvalue\t\t")
-              => {:key "value"})
+             (-> "key:\t\tvalue\t\t" parse :key)
+             => "value")
 
        (fact "Duplicate keys are assigned to the last given value"
-             (archie-parser "key:value\nkey:newvalue")
-              => {:key "newvalue"})
+             (-> "key:value\nkey:newvalue" parse :key)
+             => "newvalue")
 
        (fact "Allows non-letter characters at the start of values"
-             (archie-parser "key::value")
-              => {:key ":value"})
+             (parse "key::value")
+             => {:key ":value"})
 
        (fact "Keys are case sensitive"
-             (keys (archie-parser "key:value\nKey:Value"))
-              => (just [:key :Key] :in-any-order true))
+             (-> "key:value\nKey:Value" parse keys)
+             => (just [:key :Key] :in-any-order true))
 
 
        (fact "Non-keys don't affect parsing"
-             (archie-parser "other stuff\nkey:value\nother stuff")
-              => {:key "value"}))
+             (-> "other stuff\nkey:value\nother stuff" parse :key)
+             => "value"))
+
 
 (facts "Valid keys"
-
        (fact "letters, numbers, dashes and underscores are valid key components"
-             (archie-parser "a-_1:value")
-             => {:a-_1 "value"})
-
+             (-> "a-_1:value" parse :a-_1)
+             => "value")
 
        (fact "spaces are not allowed in keys"
-             (-> "k ey:value" archie-parser keys count)
-             => 0)
+             (-> "k ey:value" parse keys)
+             => empty?)
 
        (fact "symbols are not allowed in keys"
-            (-> "k&ey:value" archie-parser keys count)
-            => 0)
+             (-> "k&ey:value" parse keys)
+             => empty?)
 
        (fact "keys can be nested using dot-notation"
-             (-> "scope.key:value" archie-parser)
-             => {:scope {:key "value"}})
+             (-> "scope.key:value" parse :scope :key)
+             => "value")
 
        (fact "earlier keys within scopes aren't deleted when using dot-notation"
-             (-> "scope.key:value\nscope.otherkey:value"
-                 archie-parser
-                 :scope
-                 :key)
+             (-> "scope.key:value\nscope.otherkey:value" parse :scope :key)
              => "value")
 
        (fact "the value of key that used to be a string object should be replaced with an object if necessary" 
-             (-> "scope.level:value\nscope.level.level:value"
-                 archie-parser
+             (-> "scope.level:value\nscope.level.level:value" parse
                  :scope
                  :level
                  :level)
              => "value")
 
        (fact "the value of key that used to be a parent object should be replaced with a string if necessary" 
-         (-> "scope.level.level:value\nscope.level:value"
-             archie-parser
-             :scope
-             :level)
-         => "value")
+             (-> "scope.level.level:value\nscope.level:value"
+                 parse
+                 :scope
+                 :level)
+             => "value"))
 
-       )
+
+(facts "skip"
+
+       (fact "ignores spaces on either side of :skip"
+             (-> "  :skip  \nkey:value\n:endskip" parse keys)
+             => empty?)
+
+       (fact "ignores tabs on either side of :skip"
+
+             (-> "\t\t:skip\t\t\nkey:value\n:endskip" parse keys)
+             => empty?)
+
+       (fact "ignores spaces on either side of :endskip"
+             (-> ":skip\nkey:value\n  :endskip  " parse keys)
+             => empty?)
+
+       (fact "ignores tabs on either side of :endskip"
+             (-> ":skip\nkey:value\n\t\t:endskip\t\t" parse keys)
+             => empty?)
+
+       (fact "starts parsing again after :endskip"
+             (-> ":skip\n:endskip\nkey:value" parse :key)
+             => "value")
+
+       (fact ":skip and :endskip are case insensitive"
+             (-> ":sKiP\nkey:value\n:eNdSkIp" parse keys)
+             => empty?)
+
+       (fact "parse :skip as a special command even if more is appended to word"
+             (-> ":skipthis\nkey:value\n:endskip" parse keys)
+             => empty?)
+
+       (fact "ignores all content on line after :skip + space"
+             (-> ":skip this text  \nkey:value\n:endskip" parse keys)
+             => empty?)
+
+       (fact "ignores all content on line after :skip + tab"
+             (-> ":skip\tthis text\t\t\nkey:value\n:endskip" parse keys)
+             => empty?)
+
+
+       (fact "parse :endskip as a special command even if more is appended to word" 
+             (=> ":skip\n:endskiptheabove\nkey:value" parse :key)
+             => "value")
+
+       (fact "ignores all content on line after :endskip + space"
+             (-> ":skip\n:endskip the above\nkey:value" parse :key)
+             => "value")
+
+       (fact "ignores all content on line after :endskip + tab"
+             (-> ":skip\n:endskip\tthe above\nkey:value" parse :key)
+             => "value")
+
+       (fact "does not parse :end as an :endskip"
+             (-> ":skip\n:end\tthe above\nkey:value" parse keys)
+             => empty?)
+
+       (fact "ignores keys within a skip block"
+             (-> "key1:value1\n:skip\nother:value\n\n:endskip\n\nkey2:value2" 
+                 parse
+                 keys) 
+             => (just [:key1 :key2] :in-any-order true)))
