@@ -76,11 +76,11 @@
                        {:buffer [] :keygroup kg :original-value v}))
               :End
               (recur (rest remain) 
-                     (archie-assoc-in result
-                                      (:keygroup state)
-                                      (clojure.string/join
-                                        (into [(:original-value state)] 
-                                              (:buffer state)))) 
+                     (let [{:keys [buffer keygroup original-value]} state] 
+                       (archie-assoc-in result 
+                                        keygroup
+                                        (str original-value "\n"
+                                             (clojure.string/join "\n" buffer))))
                      :normal
                      {})
               (throw (Exception. "Unexpected :Special case"))))))
