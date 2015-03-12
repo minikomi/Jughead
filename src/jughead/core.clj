@@ -54,11 +54,11 @@
 
 (defn parse-all-lines [input]
   (->> input 
-       (clojure.string/split-lines)
+       clojure.string/split-lines
        (map line-parser)
        (map first)))
 
 (defn parse [input]
   (->> input
-       (parse-all-lines)
-       (interpret)))
+       parse-all-lines
+       interpret))
