@@ -40,14 +40,12 @@
 (defn interpret [parsed]
   (loop [remain parsed       ; remaining lines to interpret
          result {}           ; map to return
-         mode   :normal      ; current parsing mode
+         mode   :normal      ; current parsing mode - normal or keyblock
          state  {:scope []}] ; current parsing state
     (case mode
 
-      ; ------------------------------------------------------------------------
       :keyblock
       ; Buffering normal lines until we hit an :end or other special case.
-      ; ------------------------------------------------------------------------
       (if (empty? remain) 
         ; keep the last key value pair which was found
         (let [{:keys [scope keygroup original-value]} state]
@@ -57,8 +55,8 @@
 
         (let [[line-type line-data] (first remain)]
           (case line-type
+
             :Normal
-            ; ------------------------------------------------------------------
             (recur (rest remain) 
                    result 
                    :keyblock
@@ -66,7 +64,6 @@
                               conj (s/replace (second line-data) #"^\\" "")))
 
             :Special
-            ; ------------------------------------------------------------------
             (case (first line-data)
 
               :Skip 
@@ -123,8 +120,8 @@
 
               (throw (Exception. "Unexpected :Special case"))))))
 
+
       ; default
-      ; ------------------------------------------------------------------------
       (if (empty? remain) 
         (let [scope (:scope state)]
           (if (empty? scope) result
