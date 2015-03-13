@@ -80,7 +80,6 @@
 
 
 (facts "skip"
-
        (fact "ignores spaces on either side of :skip"
              (-> "  :skip  \nkey:value\n:endskip" parse keys)
              => empty?)
@@ -142,7 +141,6 @@
 
 
 (facts "ignore"
-
        (fact "text before ':ignore' should be included"
              (-> "key:value\n:ignore" parse :key)
              => "value")
@@ -205,7 +203,7 @@
              (->"key:value\nextra\n  :end  " parse :key)
              => "value\nextra")
 
-       (fact  "ignores tabs on either side of :end"
+       (fact "ignores tabs on either side of :end"
              (-> "key:value\nextra\n\t\t:end\t\t" parse :key)
              => "value\nextra")
 
@@ -252,15 +250,15 @@
              (-> "key:value\n\\:endthis\n:end" parse :key)
              => "value\n:endthis")
 
-       (fact "allows escaping of non-commands at the beginning of lines" ;
+       (fact "allows escaping of non-commands at the beginning of lines" 
              (-> "key:value\n\\:notacommand\n:end" parse :key)
              => "value\n:notacommand")
 
-       (fact "allows simple array style lines" ;
+       (fact "allows simple array style lines" 
              (-> "key:value\n* value\n:end" parse :key)
              => "value\n* value")
 
-       (fact "escapes '*' within multi-line values when not in a simple array" ;
+       (fact "escapes '*' within multi-line values when not in a simple array" 
              (-> "key:value\n\\* value\n:end" parse :key)
              => "value\n* value")
 
@@ -291,14 +289,11 @@
 
        (fact "doesn't escape colons after beginning of lines" 
             (-> "key:value\nLorem key2\\:value\n:end" parse :key)
-            => "value\nLorem key2\\:value")
-       )
-
+            => "value\nLorem key2\\:value"))
 
 
 (facts "scopes"
-
-       (fact "{scope} creates an empty object at 'scope'";
+       (fact "{scope} creates an empty object at 'scope'"
              (-> "{scope}" parse :scope)
              => map?)
 
@@ -361,11 +356,60 @@
 
        (fact "ignore tabs on either side of {}"
              (-> "{scope}\n\t\t{}\t\t\nkey:value" parse :key)
+             => "value"))
+
+
+
+(facts "arrays"
+       (fact "[array] creates an empty array at "array""
+             (-> "[array]" parse :array)
+             => #(and (empty? %) (vector? %)))
+
+       (fact "ignores spaces on either side of [array]"
+             (-> "  [array]  " parse :array)
+             => #(and (empty? %) (vector? %)))
+
+       (fact "ignores tabs on either side of [array]"
+             (-> "\t\t[array]\t\t" parse :array)
+             => #(and (empty? %) (vector? %)))
+
+       (fact "ignores spaces on either side of [array] variable name"
+             (-> "[  array  ]" parse :array)
+             => #(and (empty? %) (vector? %)))
+
+       (fact "ignores tabs on either side of [array] variable name"
+             (-> "[\t\tarray\t\t]" parse :array)
+             => #(and (empty? %) (vector? %)))
+
+       (fact "ignores text after [array]"
+             (-> "[array]a" parse :array)
+             => #(and (empty? %) (vector? %)))
+
+
+       (fact "arrays can be nested using dot-notaion"
+             (-> "[scope.array]" parse :scope :array)
+             => #(and (empty? %) (vector? %)))
+
+       (fact "array values can be nested using dot-notaion"
+             (-> "[array]\nscope.key: value\nscope.key: value" parse :key)
+             => [{:scope {:key "value"}} {:scope {:key "value"}}])
+
+       (fact "[] resets to the global scope"
+             (-> "[array]\n[]\nkey:value" parse :key)
              => "value")
 
-       )
+       (fact "ignore spaces inside []"
+             (-> "[array]\n[  ]\nkey:value" parse :key)
+             => "value")
 
+       (fact "ignore tabs inside []"
+             (-> "[array]\n[\t\t]\nkey:value" parse :key)
+             => "value")
 
+       (fact "ignore spaces on either side of []"
+             (-> "[array]\n  []  \nkey:value" parse :key)
+             => "value")
 
-
-
+       (fact "ignore tabs on either side of []"
+             (-> "[array]\n\t\t[]\t\t\nkey:value" parse :key)
+             => "value"))

@@ -42,8 +42,7 @@
   (-> value
       (s/replace #"(?:^\\)?\[[^\[\]\n\r]*\](?!\])" "")
       (s/replace #"\[\[([^\[\]\n\r]*)\]\]" "[$1]")
-      (s/trim)) 
-      )
+      (s/trim)))
 
 (defn interpret [parsed]
   (loop [remain parsed       ; remaining lines to interpret
