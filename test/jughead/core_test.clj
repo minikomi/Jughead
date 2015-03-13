@@ -286,7 +286,6 @@
              (-> "key:value\n\\:end\n\\:ignore\n\\:endskip\n\\:skip\n:end" parse :key)
              => "value\n:end\n:ignore\n:endskip\n:skip")
 
-
        (fact "doesn't escape colons after beginning of lines" 
             (-> "key:value\nLorem key2\\:value\n:end" parse :key)
             => "value\nLorem key2\\:value"))
@@ -329,6 +328,10 @@
              (-> "{scope.scope}\nkey:value" parse :scope :scope :key)
              => "value")
 
+       (fact "scopes can contain multiple keys"
+             (-> "{scope}\nkey:value\nother:value" parse :scope keys)
+             => (just [:key :other] :in-any-order true))
+
        (fact "scopes can be reopened"
              (-> "{scope}\nkey:value\n{}\n{scope}\nother:value" parse :scope keys)
              => (just [:key :other] :in-any-order true))
@@ -363,35 +366,34 @@
 (facts "arrays"
        (fact "[array] creates an empty array at "array""
              (-> "[array]" parse :array)
-             => #(and (empty? %) (vector? %)))
+             => [])
 
        (fact "ignores spaces on either side of [array]"
              (-> "  [array]  " parse :array)
-             => #(and (empty? %) (vector? %)))
+             => [])
 
        (fact "ignores tabs on either side of [array]"
              (-> "\t\t[array]\t\t" parse :array)
-             => #(and (empty? %) (vector? %)))
+             => [])
 
        (fact "ignores spaces on either side of [array] variable name"
              (-> "[  array  ]" parse :array)
-             => #(and (empty? %) (vector? %)))
+             => [])
 
        (fact "ignores tabs on either side of [array] variable name"
              (-> "[\t\tarray\t\t]" parse :array)
-             => #(and (empty? %) (vector? %)))
+             => [])
 
        (fact "ignores text after [array]"
              (-> "[array]a" parse :array)
-             => #(and (empty? %) (vector? %)))
-
+             => [])
 
        (fact "arrays can be nested using dot-notaion"
              (-> "[scope.array]" parse :scope :array)
-             => #(and (empty? %) (vector? %)))
+             => [])
 
        (fact "array values can be nested using dot-notaion"
-             (-> "[array]\nscope.key: value\nscope.key: value" parse :key)
+             (-> "[array]\nscope.key: value\nscope.key: value" parse :array)
              => [{:scope {:key "value"}} {:scope {:key "value"}}])
 
        (fact "[] resets to the global scope"

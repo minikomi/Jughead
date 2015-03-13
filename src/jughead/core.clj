@@ -13,6 +13,7 @@
      :Key (fn [& keystrings] (mapv keyword keystrings))
      :Value str
      :OpenScope identity
+     :OpenArray (fn [kg] (identity (conj kg 0)))
      }
     data))
 
@@ -28,7 +29,12 @@
   maps rather than erroring out."
   [m [k & ks] v]
   (if ks
-    (archie-assoc m k (archie-assoc-in (get m k) ks v))
+    (if (= 0 (first ks))
+       (archie-assoc m k 
+                     (if (second ks)
+                      (conj (get m k) (archie-assoc-in (second ks) (rest ks) v))
+                      []))
+      (archie-assoc m k (archie-assoc-in (get m k) ks v)))
     (archie-assoc m k v)))
 
 (defn special-tag-isnt [tag]
@@ -49,8 +55,8 @@
          result {}           ; map to return
          mode   :normal      ; current parsing mode - normal or keyblock
          state  {:scope []}] ; current parsing state
-    (case mode
 
+    (case mode
       :keyblock
       ; Buffering normal lines until we hit an :end or other special case.
       (if (empty? remain) 
@@ -91,8 +97,9 @@
               ; - reset state, enter keyblock mode
               (let [[new-kg new-v] (transform line-data)
                     old-kg (:keygroup state)
-                    old-v  (format-value (:original-value state))
-                    new-result (archie-assoc-in result old-kg old-v)]
+                    scope (:scope state)
+                    old-v (format-value (:original-value state))
+                    new-result (archie-assoc-in result (into scope old-kg) old-v)]
                 (recur (rest remain) new-result :keyblock
                        (assoc state
                               :buffer [] 
@@ -118,6 +125,22 @@
                      :normal
                      {:scope (transform line-data)})
               :EndScope
+              (recur (rest remain) 
+                     (archie-assoc-in result 
+                                      (into (:scope state) (:keygroup state)) 
+                                      (format-value (:original-value state)))
+                     mode 
+                     state)
+
+              :OpenArray
+              ; enter scoped, save current original key/value
+              (recur (rest remain)
+                     (archie-assoc-in result 
+                                      (into (:scope state) (:keygroup state)) 
+                                      (format-value (:original-value state)))
+                     :normal
+                     {:scope (transform line-data)})
+              :EndArray
               (recur (rest remain) 
                      (archie-assoc-in result 
                                       (into (:scope state) (:keygroup state)) 
@@ -169,8 +192,17 @@
               (recur (rest remain)
                      result
                      :normal
-                     (assoc state :scope (-> line-data second transform)))
+                     (assoc state :scope (transform line-data)))
               :EndScope
+              (recur (rest remain) result mode (assoc state :scope []))
+
+              :OpenArray
+              ; enter scoped, save current original key/value
+              (recur (rest remain)
+                     result
+                     :normal
+                     (assoc state :scope (transform line-data)))
+              :EndArray
               (recur (rest remain) result mode (assoc state :scope []))
 
               (throw (Exception. "Unexpected :Special case")))))))))
