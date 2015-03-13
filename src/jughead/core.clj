@@ -37,6 +37,14 @@
 (defn remove-until-endskip [remain]
   (rest (drop-while (special-tag-isnt :EndSkip) remain)))
 
+(defn format-value [value]
+  "removes comments, double sq brackets"
+  (-> value
+      (s/replace #"(?:^\\)?\[[^\[\]\n\r]*\](?!\])" "")
+      (s/replace #"\[\[([^\[\]\n\r]*)\]\]" "[$1]")
+      (s/trim)) 
+      )
+
 (defn interpret [parsed]
   (loop [remain parsed       ; remaining lines to interpret
          result {}           ; map to return
@@ -51,7 +59,7 @@
         (let [{:keys [scope keygroup original-value]} state]
           (archie-assoc-in result 
                            (into scope keygroup) 
-                           (s/trim original-value)))
+                           (format-value original-value)))
 
         (let [[line-type line-data] (first remain)]
           (case line-type
@@ -84,7 +92,7 @@
               ; - reset state, enter keyblock mode
               (let [[new-kg new-v] (transform line-data)
                     old-kg (:keygroup state)
-                    old-v  (s/trim (:original-value state))
+                    old-v  (format-value (:original-value state))
                     new-result (archie-assoc-in result old-kg old-v)]
                 (recur (rest remain) new-result :keyblock
                        (assoc state
@@ -96,7 +104,7 @@
                      (let [{:keys [scope buffer keygroup original-value]} state] 
                        (archie-assoc-in result 
                                         (into scope keygroup)
-                                        (s/trim
+                                        (format-value
                                          (str original-value "\n"
                                              (s/join "\n" buffer)))))
                      :normal
@@ -107,14 +115,14 @@
               (recur (rest remain)
                      (archie-assoc-in result 
                                       (into (:scope state) (:keygroup state)) 
-                                      (s/trim (:original-value state)))
+                                      (format-value (:original-value state)))
                      :normal
                      {:scope (transform line-data)})
               :EndScope
               (recur (rest remain) 
                      (archie-assoc-in result 
                                       (into (:scope state) (:keygroup state)) 
-                                      (s/trim (:original-value state)))
+                                      (format-value (:original-value state)))
                      mode 
                      state)
 

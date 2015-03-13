@@ -17,6 +17,8 @@ EndSkip = WhiteSpace* <#'(?i):endskip'> WhiteSpace* <AnyValue>
 OpenScope = <WhiteSpace>* <'{'> <WhiteSpace>* Key <WhiteSpace>* <'}'> <AnyValue>
 EndScope  = <WhiteSpace>* <'{'> <WhiteSpace>* <'}'> <AnyValue>
 
+(* Arrays *)
+
 
 (* Ignore *)
 Ignore = WhiteSpace* <#'(?i):ignore'> WhiteSpace* <AnyValue>
