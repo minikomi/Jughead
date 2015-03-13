@@ -26,17 +26,19 @@
 
 (defn archie-assoc-in
   "Similar to clojure's base assoc-in but replaces non-associatives with
-  maps rather than erroring out."
+  maps rather than erroring out. Also allows nesting in a vector by 
+  looking ahead for '0' keys.
+  "
   [m [k & ks] v]
   (if ks
-    (if (= 0 (first ks))
-       (archie-assoc m k 
-                     (if (second ks)
-                       (let [current (get m k)]
-                         (if (vector? current) 
-                           (conj current (archie-assoc-in (second ks) (rest ks) v))
-                           [(archie-assoc-in (second ks) (rest ks) v)]))
-                      []))
+    (if (= 0 (first ks)) ; zero means the next branch should be a vector
+      (archie-assoc m k 
+        (if (second ks)
+          (let [current (get m k)]
+            (if (vector? current) 
+              (conj current (archie-assoc-in (second ks) (rest ks) v))
+              [(archie-assoc-in (second ks) (rest ks) v)]))
+          []))
       (archie-assoc m k (archie-assoc-in (get m k) ks v)))
     (archie-assoc m k v)))
 
