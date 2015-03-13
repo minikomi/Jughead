@@ -36,17 +36,20 @@
   (rest (drop-while (special-tag-isnt :EndSkip) remain)))
 
 (defn interpret [parsed]
-  (loop [remain parsed    ; remaining lines to interpret
-         result {}        ; map to return
-         mode   :normal   ; current parsing mode
-         state  {}]       ; current parsing state
+  (loop [remain parsed       ; remaining lines to interpret
+         result {}           ; map to return
+         mode   :normal      ; current parsing mode
+         state  {:scope []}] ; current parsing state
     (case mode
+
+      ; ------------------------------------------------------------------------
       :keyblock
       ; Buffering normal lines until we hit an :end or other special case.
       ; ------------------------------------------------------------------------
       (if (empty? remain) 
         ; keep the last key value pair which was found
-        (archie-assoc-in result (:keygroup state) (s/trim (:original-value state)))
+        (let [{:keys [scope keygroup original-value]} state]
+          (archie-assoc-in result (into scope keygroup) (s/trim original-value)))
         (let [[line-type line-data] (first remain)]
           (case line-type
             :Normal
@@ -64,35 +67,61 @@
               :Skip 
               ; - drop until :endskip
               (recur (remove-until-endskip remain) result mode state)
+              :EndSkip 
+              (recur (rest remain) result mode state)
 
               :Ignore
               ; - escape hatch
               ; - keep the last key we found.
-              (archie-assoc-in result (:keygroup state) (:original-value state))
+              (archie-assoc-in result 
+                               (into (:scope state) (:keygroup state)) 
+                               (:original-value state))
 
               :KeyValuePair 
               ; - reset state, enter keyblock mode
-              (let [[kg v] (transform line-data)
-                    new-result (archie-assoc-in result (:keygroup state) (s/trim (:original-value state)))]
+              (let [[new-kg new-v] (transform line-data)
+                    old-kg (:keygroup state)
+                    old-v  (s/trim (:original-value state))
+                    new-result (archie-assoc-in result old-kg old-v)]
                 (recur (rest remain) new-result :keyblock
-                       {:buffer [] :keygroup kg :original-value v}))
+                       (assoc state
+                              :buffer [] 
+                              :keygroup new-kg 
+                              :original-value new-v)))
               :End
               (recur (rest remain) 
-                     (let [{:keys [buffer keygroup original-value]} state] 
+                     (let [{:keys [scope buffer keygroup original-value]} state] 
                        (archie-assoc-in result 
-                                        keygroup
+                                        (into scope keygroup)
                                         (s/trim
                                          (str original-value "\n"
                                              (s/join "\n" buffer)))))
                      :normal
-                     {})
-              :EndSkip 
-              (recur (rest remain) result mode state)
+                     (dissoc state :keygroup :original-value :buffer))
+
+              :OpenScope
+              ; enter scoped, save current original key/value
+              (recur (rest remain)
+                     (archie-assoc-in result 
+                                      (into (:scope state) (:keygroup state)) 
+                                      (s/trim (:original-value state)))
+                     :normal
+                     {:scope (-> line-data second transform)})
+              :EndScope
+              (recur (rest remain) 
+                     (archie-assoc-in result 
+                                      (into (:scope state) (:keygroup state)) 
+                                      (s/trim (:original-value state)))
+                     mode 
+                     state)
+
               (throw (Exception. "Unexpected :Special case"))))))
 
       ; default
       ; ------------------------------------------------------------------------
-      (if (empty? remain) result
+      (if (empty? remain) (let [scope (:scope state)]
+                            (if (empty? scope) result
+                              (archie-assoc-in result scope {})))
         (let [[line-type line-data] (first remain)]
         (case line-type
           :Normal
@@ -101,9 +130,12 @@
           :Special
           ; --------------------------------------------------------------------
           (case (first line-data)
+
             :Skip 
             ; - drop until :endskip
             (recur (remove-until-endskip remain) result mode state)
+            :EndSkip 
+            (recur (rest remain) result mode state)
 
             :Ignore
             ; - escape hatch
@@ -115,11 +147,19 @@
               (recur (rest remain)
                      result
                      :keyblock
-                     {:buffer [] :keygroup kg :original-value v}))
+                     (assoc state :buffer [] :keygroup kg :original-value v)))
             :End
             (recur (rest remain) result mode state)
-            :EndSkip 
-            (recur (rest remain) result mode state)
+
+            :OpenScope
+            ; enter scoped, save current original key/value
+            (recur (rest remain)
+                   result
+                   :normal
+                   (assoc state :scope (-> line-data second transform)))
+            :EndScope
+            (recur (rest remain) result mode (assoc state :scope []))
+
             (throw (Exception. "Unexpected :Special case")))))))))
 
 

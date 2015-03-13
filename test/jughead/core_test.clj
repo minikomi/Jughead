@@ -118,7 +118,6 @@
              (-> ":skip\tthis text\t\t\nkey:value\n:endskip" parse keys)
              => empty?)
 
-
        (fact "parse :endskip as a special command even if more is appended to word" 
              (-> ":skip\n:endskiptheabove\nkey:value" parse :key)
              => "value")
@@ -206,7 +205,6 @@
              (->"key:value\nextra\n  :end  " parse :key)
              => "value\nextra")
 
-
        (fact  "ignores tabs on either side of :end"
              (-> "key:value\nextra\n\t\t:end\t\t" parse :key)
              => "value\nextra")
@@ -229,7 +227,6 @@
        (fact "ignores all content on line after :end + tab"
              (-> "key:value\nextra\n:end\tthis" parse :key)
              => "value\nextra")
-
 
        (fact "doesn't escape colons on first line"
              (-> "key::value\n:end" parse :key)
@@ -259,7 +256,6 @@
              (-> "key:value\n\\:notacommand\n:end" parse :key)
              => "value\n:notacommand")
 
-
        (fact "allows simple array style lines" ;
              (-> "key:value\n* value\n:end" parse :key)
              => "value\n* value")
@@ -268,42 +264,106 @@
              (-> "key:value\n\\* value\n:end" parse :key)
              => "value\n* value")
 
+       (fact "allows escaping {scopes} at the beginning of lines"
+             (-> "key:value\n\\{scope}\n:end" parse :key)
+             => "value\n{scope}")
 
-(fact "allows escaping {scopes} at the beginning of lines" ;
-      (-> "key:value\n\\{scope}\n:end" parse :key)
-      => "value\n{scope}")
+       (fact "allows escaping [comments] at the beginning of lines"
+             (-> "key:value\n\\[comment]\n:end" parse :key)
+             => "value")
 
-(fact "allows escaping [comments] at the beginning of lines" ;
-      (-> "key:value\n\\[comment]\n:end" parse :key)
-      => "value")
+       (fact "allows escaping [[arrays]] at the beginning of lines"
+             (-> "key:value\n\\[[array]]\n:end" parse :key)
+             => "value\n[array]")
 
-(fact "allows escaping [[arrays]] at the beginning of lines" ;
-      (-> "key:value\n\\[[array]]\n:end" parse :key)
-      => "value\n[array]")
+       (fact "allows escaping initial backslash at the beginning of lines" 
+             (-> "key:value\n\\\\:end\n:end" parse :key)
+             => "value\n\\:end")
 
+       (fact "escapes only one initial backslash"
+             (-> "key:value\n\\\\\\:end\n:end" parse :key)
+             => "value\n\\\\:end")
 
-(fact "allows escaping initial backslash at the beginning of lines" ;
-      (-> "key:value\n\\\\:end\n:end" parse :key)
-      => "value\n\\:end")
-
-(fact "escapes only one initial backslash" ;
-      (-> "key:value\n\\\\\\:end\n:end" parse :key)
-      => "value\n\\\\:end")
-
-
-(fact "allows escaping multiple lines in a value" ;
-      (-> "key:value\n\\:end\n\\:ignore\n\\:endskip\n\\:skip\n:end" parse :key)
-      => "value\n:end\n:ignore\n:endskip\n:skip")
+       (fact "allows escaping multiple lines in a value" 
+             (-> "key:value\n\\:end\n\\:ignore\n\\:endskip\n\\:skip\n:end" parse :key)
+             => "value\n:end\n:ignore\n:endskip\n:skip")
 
 
-(fact "doesn't escape colons after beginning of lines" ;
-      (-> "key:value\nLorem key2\\:value\n:end" parse :key)
-      => "value\nLorem key2\\:value")
-)
+       (fact "doesn't escape colons after beginning of lines" 
+            (-> "key:value\nLorem key2\\:value\n:end" parse :key)
+            => "value\nLorem key2\\:value")
+       )
 
 
 
+(facts "scopes"
 
+       (fact "{scope} creates an empty object at 'scope'";
+             (-> "{scope}" parse :scope)
+             => map?)
+
+       (fact "ignores spaces on either side of {scope}"
+             (-> "  {scope}  " parse :scope)
+             => map?)
+
+       (fact "ignores tabs on either side of {scope}"
+             (-> "\t\t{scope}\t\t" parse :scope)
+             => map?)
+
+       (fact "ignores spaces on either side of {scope} variable name"
+             (-> "{  scope  }" parse :scope)
+             => map?)
+
+       (fact "ignores tabs on either side of {scope} variable name"
+             (-> "{\t\tscope\t\t}" parse :scope)
+             => map?)
+
+       (fact "ignores text after {scope}"
+             (-> "{scope}a" parse :scope)
+             => {})
+
+       (fact "items before a {scope} are not namespaced"
+             (-> "key:value\n{scope}" parse :key)
+             => "value")
+
+       (fact "items after a {scope} are namespaced"
+             (-> "{scope}\nkey:value" parse :scope :key)
+             => "value")
+
+       (fact "scopes can be nested using dot-notaion"
+             (-> "{scope.scope}\nkey:value" parse :scope :scope :key)
+             => "value")
+
+       (fact "scopes can be reopened"
+             (-> "{scope}\nkey:value\n{}\n{scope}\nother:value" parse :scope keys)
+             => (just [:key :other] :in-any-order true))
+
+       (fact "scopes do not overwrite existing values"
+             (-> "{scope.scope}\nkey:value\n{scope.otherscope}key:value" 
+                 parse :scope :scope :key)
+             => "value")
+
+       (fact "{} resets to the global scope"
+             (-> "{scope}\n{}\nkey:value" parse :key)
+             => "value")
+
+       (fact "ignore spaces inside {}"
+             (-> "{scope}\n{  }\nkey:value" parse :key)
+             => "value")
+
+       (fact "ignore tabs inside {}"
+             (-> "{scope}\n{\t\t}\nkey:value" parse :key)
+             => "value")
+
+       (fact "ignore spaces on either side of {}"
+             (-> "{scope}\n  {}  \nkey:value" parse :key)
+             => "value")
+
+       (fact "ignore tabs on either side of {}"
+             (-> "{scope}\n\t\t{}\t\t\nkey:value" parse :key)
+             => "value")
+
+       )
 
 
 

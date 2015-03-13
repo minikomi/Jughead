@@ -1,5 +1,5 @@
 <ArchieLine> = Normal | Special
-Special      = KeyValuePair | End | Skip | EndSkip | Ignore
+Special      = KeyValuePair | End | Skip | EndSkip | OpenScope | EndScope | Ignore
 
 (* Key Value Pair *)
 KeyValuePair = <WhiteSpace>* Key <WhiteSpace>* <':'> <WhiteSpace>* Value
@@ -12,6 +12,11 @@ End          = WhiteSpace* <#'(?i):end'> WhiteSpace* <AnyValue>
 (* Skip / Endskip *)
 Skip    = WhiteSpace* <#'(?i):skip'> WhiteSpace* <AnyValue>
 EndSkip = WhiteSpace* <#'(?i):endskip'> WhiteSpace* <AnyValue>
+
+(* Scope *)
+OpenScope = <WhiteSpace>* <'{'> <WhiteSpace>* Key <WhiteSpace>* <'}'> <AnyValue>
+EndScope  = <WhiteSpace>* <'{'> <WhiteSpace>* <'}'> <AnyValue>
+
 
 (* Ignore *)
 Ignore = WhiteSpace* <#'(?i):ignore'> WhiteSpace* <AnyValue>
