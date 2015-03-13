@@ -11,7 +11,9 @@
   (insta/transform
     {:KeyValuePair vector
      :Key (fn [& keystrings] (mapv keyword keystrings))
-     :Value str}
+     :Value str
+     :OpenScope identity
+     }
     data))
 
 (defn archie-assoc [m k v]
@@ -49,7 +51,10 @@
       (if (empty? remain) 
         ; keep the last key value pair which was found
         (let [{:keys [scope keygroup original-value]} state]
-          (archie-assoc-in result (into scope keygroup) (s/trim original-value)))
+          (archie-assoc-in result 
+                           (into scope keygroup) 
+                           (s/trim original-value)))
+
         (let [[line-type line-data] (first remain)]
           (case line-type
             :Normal
@@ -67,6 +72,7 @@
               :Skip 
               ; - drop until :endskip
               (recur (remove-until-endskip remain) result mode state)
+
               :EndSkip 
               (recur (rest remain) result mode state)
 
@@ -106,7 +112,7 @@
                                       (into (:scope state) (:keygroup state)) 
                                       (s/trim (:original-value state)))
                      :normal
-                     {:scope (-> line-data second transform)})
+                     {:scope (transform line-data)})
               :EndScope
               (recur (rest remain) 
                      (archie-assoc-in result 
@@ -119,48 +125,51 @@
 
       ; default
       ; ------------------------------------------------------------------------
-      (if (empty? remain) (let [scope (:scope state)]
-                            (if (empty? scope) result
-                              (archie-assoc-in result scope {})))
-        (let [[line-type line-data] (first remain)]
-        (case line-type
-          :Normal
-          ; --------------------------------------------------------------------
-          (recur (rest remain) result mode state)
-          :Special
-          ; --------------------------------------------------------------------
-          (case (first line-data)
+      (if (empty? remain) 
+        (let [scope (:scope state)]
+          (if (empty? scope) result
+            (archie-assoc-in result scope {})))
 
-            :Skip 
-            ; - drop until :endskip
-            (recur (remove-until-endskip remain) result mode state)
-            :EndSkip 
+        (let [[line-type line-data] (first remain)]
+          (case line-type
+
+            :Normal
             (recur (rest remain) result mode state)
 
-            :Ignore
-            ; - escape hatch
-            result
+            :Special
+            (case (first line-data)
 
-            :KeyValuePair 
-            ; - reset state, enter keyblock mode
-            (let [[kg v] (transform line-data)]
+              :Skip 
+              ; - drop until :endskip
+              (recur (remove-until-endskip remain) result mode state)
+
+              :EndSkip 
+              (recur (rest remain) result mode state)
+
+              :Ignore
+              ; - escape hatch
+              result
+
+              :KeyValuePair 
+              ; - reset state, enter keyblock mode
+              (let [[kg v] (transform line-data)]
+                (recur (rest remain)
+                       result
+                       :keyblock
+                       (assoc state :buffer [] :keygroup kg :original-value v)))
+              :End
+              (recur (rest remain) result mode state)
+
+              :OpenScope
+              ; enter scoped, save current original key/value
               (recur (rest remain)
                      result
-                     :keyblock
-                     (assoc state :buffer [] :keygroup kg :original-value v)))
-            :End
-            (recur (rest remain) result mode state)
+                     :normal
+                     (assoc state :scope (-> line-data second transform)))
+              :EndScope
+              (recur (rest remain) result mode (assoc state :scope []))
 
-            :OpenScope
-            ; enter scoped, save current original key/value
-            (recur (rest remain)
-                   result
-                   :normal
-                   (assoc state :scope (-> line-data second transform)))
-            :EndScope
-            (recur (rest remain) result mode (assoc state :scope []))
-
-            (throw (Exception. "Unexpected :Special case")))))))))
+              (throw (Exception. "Unexpected :Special case")))))))))
 
 
 (def line-parser (insta/parser (clojure.java.io/resource "archie.bnf")))
