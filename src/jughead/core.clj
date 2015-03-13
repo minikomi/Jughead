@@ -32,7 +32,10 @@
     (if (= 0 (first ks))
        (archie-assoc m k 
                      (if (second ks)
-                      (conj (get m k) (archie-assoc-in (second ks) (rest ks) v))
+                      (if-let [current (get m k)]
+                        (conj current (archie-assoc-in (second ks) (rest ks) v))
+                        [(archie-assoc-in (second ks) (rest ks) v)]
+                        )
                       []))
       (archie-assoc m k (archie-assoc-in (get m k) ks v)))
     (archie-assoc m k v)))
