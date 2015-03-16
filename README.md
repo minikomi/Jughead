@@ -5,6 +5,7 @@ A Clojure ArchieML parser using Instaparse
 ## Usage
 
 Nowhere near ready yet!
+You can see how far I've come by checking `/test/jughead/core_test.clj`.
 
 ## License
 

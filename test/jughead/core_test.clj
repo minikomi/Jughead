@@ -278,17 +278,17 @@
              (-> "key:value\n\\\\:end\n:end" parse :key)
              => "value\n\\:end")
 
-       (fact "escapes only one initial backslash"
-             (-> "key:value\n\\\\\\:end\n:end" parse :key)
-             => "value\n\\\\:end")
+(fact "escapes only one initial backslash"
+      (-> "key:value\n\\\\\\:end\n:end" parse :key)
+      => "value\n\\\\:end")
 
-       (fact "allows escaping multiple lines in a value" 
-             (-> "key:value\n\\:end\n\\:ignore\n\\:endskip\n\\:skip\n:end" parse :key)
-             => "value\n:end\n:ignore\n:endskip\n:skip")
+(fact "allows escaping multiple lines in a value" 
+      (-> "key:value\n\\:end\n\\:ignore\n\\:endskip\n\\:skip\n:end" parse :key)
+      => "value\n:end\n:ignore\n:endskip\n:skip")
 
-       (fact "doesn't escape colons after beginning of lines" 
-            (-> "key:value\nLorem key2\\:value\n:end" parse :key)
-            => "value\nLorem key2\\:value"))
+(fact "doesn't escape colons after beginning of lines" 
+      (-> "key:value\nLorem key2\\:value\n:end" parse :key)
+      => "value\nLorem key2\\:value"))
 
 
 (facts "scopes"
@@ -415,3 +415,65 @@
        (fact "ignore tabs on either side of []"
              (-> "[array]\n\t\t[]\t\t\nkey:value" parse :key)
              => "value"))
+
+(facts "simple arrays"
+       (fact "creates a simple array when an \"*\" is encountered first"
+             (-> "[array]\n*Value" parse :array)
+             => ["Value"])
+
+       (fact "ignores spaces on either side of \"*\""
+             (-> "[array]\n  *  Value" parse :array)
+             => ["Value"])
+
+       (fact "ignores tabs on either side of \"*\""
+             (-> "[array]\n\t\t*\t\tValue" parse :array)
+             => ["Value"])
+
+       (fact "adds multiple elements"
+             (-> "[array]\n*Value1\n*Value2" parse :array count)
+             => 2)
+
+       (fact "ignores all other text between elements"
+             (-> "[array]\n*Value1\nNon-element\n*Value2" parse :array)
+             => ["Value1" "Value2"])
+
+       (fact "ignores key:value pairs between elements"
+             (-> "[array]\n*Value1\nkey:value\n*Value2" parse :array)
+             => ["Value1" "Value2"])
+
+       (fact "parses key:values normally after an end-array"
+             (-> "[array]\n*Value1\n[]\nkey:value" parse :key)
+             => "value")
+
+       (fact "multi-line values are allowed"
+             (-> "[array]\n*Value1\nextra\n:end" parse :array)
+             => ["Value1\nextra"])
+
+       (fact "allows escaping of '*' within multi-line values in simple arrays"
+             (-> "[array]\n*Value1\n\\* extra\n:end" parse :array)
+             => ["Value1\n* extra"])
+
+       (fact "allows escaping of command keys within multi-line values"
+             (-> "[array]\n*Value1\n\\:end\n:end" parse :array)
+             => ["Value1\n:end"])
+
+       (fact "does not allow escaping of keys within multi-line values"
+             (-> "[array]\n*Value1\nkey\\:value\n:end" parse :array)
+             => ["Value1\nkey\\:value"])
+
+       (fact "allows escaping key lines with a leading backslash"
+             (-> "[array]\n*Value1\n\\key:value\n:end" parse :array)
+             => ["Value1\nkey:value"])
+
+       (fact "does not allow escaping of colons not at the beginning of lines"
+             (-> "[array]\n*Value1\nword key\\:value\n:end" parse :array)
+             => ["Value1\nword key\\:value"])
+
+
+       (fact "arrays that are reopened add to existing array"
+             (-> "[array]\n*Value\n[]\n[array]\n*Value" parse :array count)
+             => 2)
+
+       (fact "simple arrays that are reopened remain simple"
+             (-> "[array]\n*Value\n[]\n[array]\nkey:value" parse :array)
+             => ["Value"]))

@@ -3,7 +3,8 @@ Special      = KeyValuePair | End      |
                Skip         | EndSkip  |
                OpenScope    | EndScope |
                OpenArray    | EndArray |
-               Ignore
+               PlainText    |
+               Ignore       
 
 (* Key Value Pair *)
 KeyValuePair = <WhiteSpace>* Key <WhiteSpace>* <':'> <WhiteSpace>* Value
@@ -24,6 +25,7 @@ EndScope  = <WhiteSpace>* <'{'> <WhiteSpace>* <'}'> <AnyValue>
 (* Arrays *)
 OpenArray = <WhiteSpace>* <'['> <WhiteSpace>* Key <WhiteSpace>* <']'> <AnyValue>
 EndArray  = <WhiteSpace>* <'['> <WhiteSpace>* <']'> <AnyValue>
+PlainText = <WhiteSpace>* <'*'> AnyValue
 
 (* Ignore *)
 Ignore = WhiteSpace* <#'(?i):ignore'> WhiteSpace* <AnyValue>
@@ -32,5 +34,5 @@ Ignore = WhiteSpace* <#'(?i):ignore'> WhiteSpace* <AnyValue>
 Normal = AnyValue WhiteSpace*
 
 (* Utility *)
-AnyValue     = #".*"
+<AnyValue>   = #".*"
 <WhiteSpace> = #"[\t\s]"
