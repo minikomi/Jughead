@@ -1,16 +1,16 @@
-<ArchieLine> = Normal | Special
-Special      = KeyValuePair | End      |
+<ArchieLine> = Normal       |
+               KeyValuePair | End      |
                Skip         | EndSkip  |
-               OpenScope    | EndScope |
+               OpenObject   | EndObject |
                OpenArray    | EndArray |
-               PlainText    |
-               Ignore       
+               ArrayMember  |
+               Ignore
 
 (* Key Value Pair *)
 KeyValuePair = <WhiteSpace>* Key <WhiteSpace>* <':'> <WhiteSpace>* Value
-Value        = (ValueWord (WhiteSpace+ ValueWord)*) WhiteSpace*
+Value      = (ValueWord (WhiteSpace+ ValueWord)*) WhiteSpace*
 <ValueWord>  = #'[^\r\n\s\t]+'
-Key          = KeyPart (<'.'> KeyPart)*
+Key        = KeyPart (<'.'> KeyPart)*
 <KeyPart>    = #'[\w\-]+'
 End          = WhiteSpace* <#'(?i):end'> WhiteSpace* <AnyValue>
 
@@ -19,13 +19,13 @@ Skip    = WhiteSpace* <#'(?i):skip'> WhiteSpace* <AnyValue>
 EndSkip = WhiteSpace* <#'(?i):endskip'> WhiteSpace* <AnyValue>
 
 (* Scope *)
-OpenScope = <WhiteSpace>* <'{'> <WhiteSpace>* Key <WhiteSpace>* <'}'> <AnyValue>
-EndScope  = <WhiteSpace>* <'{'> <WhiteSpace>* <'}'> <AnyValue>
+OpenObject = <WhiteSpace>* <'{'> <WhiteSpace>* Key <WhiteSpace>* <'}'> <AnyValue>
+EndObject  = <WhiteSpace>* <'{'> <WhiteSpace>* <'}'> <AnyValue>
 
 (* Arrays *)
-OpenArray = <WhiteSpace>* <'['> <WhiteSpace>* Key <WhiteSpace>* <']'> <AnyValue>
-EndArray  = <WhiteSpace>* <'['> <WhiteSpace>* <']'> <AnyValue>
-PlainText = <WhiteSpace>* <'*'> AnyValue
+OpenArray   = <WhiteSpace>* <'['> <WhiteSpace>* Key <WhiteSpace>* <']'> <AnyValue>
+EndArray    = <WhiteSpace>* <'['> <WhiteSpace>* <']'> <AnyValue>
+ArrayMember = <WhiteSpace>* <'*'> AnyValue
 
 (* Ignore *)
 Ignore = WhiteSpace* <#'(?i):ignore'> WhiteSpace* <AnyValue>
