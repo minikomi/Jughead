@@ -155,3 +155,6 @@
        (fact "complex arrays that are reopened remain complex"
              (-> "[array]\nkey:value\n[]\n[array]\n*Value" parse :array)
              => [{:key "value"}]))
+
+
+

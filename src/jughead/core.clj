@@ -5,9 +5,6 @@
 
 (def line-parser (insta/parser (clojure.java.io/resource "archie.bnf")))
 
-(defn value-group-to-string [value-group]
-  (apply str (map second value-group)))
-
 (defn transform [data]
   (insta/transform
     {:KeyValuePair vector
@@ -51,9 +48,8 @@
       remove-comments
       (s/trim)))
 
-
-(defn interpret [lines]
-  (loop [remain lines
+(defn parse [input]
+  (loop [remain (s/split-lines input)
          result {}
          ; scope - always points to a collection - never to a string.
          ; buffer - collects multi line strings in case we encounter :end
@@ -79,7 +75,8 @@
             ; If the current target is a vector and contains strings,
             ; we can add more strings.
             should-make-text (and (vector? target) 
-                                  (or (empty? target) (string? (first target))))]
+                                  (or (empty? target) 
+                                      (string? (first target))))]
 
         (case line-type
           :Ignore
@@ -109,11 +106,11 @@
                                    (into (conj scope (dec (count target))) k))
                                  (into scope k))
                   new-result (archie-assoc-in result new-last-key new-v)
-                  new-buffer [v]]
+                  new-buffer [(remove-comments v)]]
               (recur (rest remain)
                      new-result
                      (assoc state :buffer new-buffer :last-key new-last-key)))
-            (let [new-buffer (conj buffer line)]
+            (let [new-buffer (conj buffer (remove-comments line))]
               (recur (rest remain)
                      result
                      (assoc state :buffer new-buffer))))
@@ -167,9 +164,3 @@
                           :buffer []
                           :last-key [])))
           )))))
-
-
-(defn parse [input]
-  (->> input
-       (s/split-lines)
-       interpret))
