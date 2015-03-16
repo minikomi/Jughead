@@ -3,6 +3,7 @@
             [clojure.string :as s]
             ))
 
+(def line-parser (insta/parser (clojure.java.io/resource "archie.bnf")))
 
 (defn value-group-to-string [value-group]
   (apply str (map second value-group)))
@@ -50,7 +51,6 @@
       remove-comments
       (s/trim)))
 
-(def line-parser (insta/parser (clojure.java.io/resource "archie.bnf")))
 
 (defn interpret [lines]
   (loop [remain lines
@@ -102,7 +102,11 @@
             (let [[k v] (transform line-data)
                   new-v (format-value v)
                   new-last-key (if (vector? target)
-                                 (into (conj scope (count target)) k)
+                                 ; testing for duplicate key in last item
+                                 (if (or (empty? target) 
+                                         (get-in (first target) k))
+                                   (into (conj scope (count target)) k)
+                                   (into (conj scope (dec (count target))) k))
                                  (into scope k))
                   new-result (archie-assoc-in result new-last-key new-v)
                   new-buffer [v]]
