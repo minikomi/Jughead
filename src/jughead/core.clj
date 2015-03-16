@@ -22,7 +22,7 @@
     {k v}))
 
 (defn archie-assoc-in
-  "more permissive assoc-in (allows replacing of ."
+  "more permissive assoc-in"
   [m [k & ks] v]
   (if ks
     (archie-assoc m k (archie-assoc-in (get m k) ks v))
