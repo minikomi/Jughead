@@ -110,6 +110,8 @@
               (recur (rest remain)
                      new-result
                      (assoc state :buffer new-buffer :last-key new-last-key)))
+
+            ; We're in a string array. Buffer the text but don't change result.
             (let [new-buffer (conj buffer (remove-comments line))]
               (recur (rest remain)
                      result
@@ -125,6 +127,8 @@
               (recur (rest remain)
                      new-result
                      (assoc state :buffer new-buffer :last-key new-last-key)))
+
+            ; We're in a complex array. Buffer the text but don't change result.
             (let [new-buffer (conj buffer line)]
               (recur (rest remain)
                      result

@@ -7,32 +7,32 @@
                Ignore
 
 (* Key Value Pair *)
-KeyValuePair = <WhiteSpace> Key <WhiteSpace> <':'> <WhiteSpace> Value
-Value        = (ValueWord (WhiteSpace ValueWord)*) WhiteSpace
+KeyValuePair = <WhiteSpace> Key <WhiteSpace> <':'> <WhiteSpace> Value;
+Value        = (ValueWord (WhiteSpace ValueWord)*) WhiteSpace;
 <ValueWord>  = #'[^\r\n\s\t]+'
-Key          = KeyPart (<'.'> KeyPart)*
+Key          = KeyPart (<'.'> KeyPart)*;
 <KeyPart>    = #'[\w\-]+'
-End          = WhiteSpace <#'(?i):end'> WhiteSpace <AnyValue>
+End          = WhiteSpace <#'(?i):end'> WhiteSpace <AnyValue>;
 
 (* Skip / Endskip *)
-Skip    = WhiteSpace <#'(?i):skip'> WhiteSpace <AnyValue>
-EndSkip = WhiteSpace <#'(?i):endskip'> WhiteSpace <AnyValue>
+Skip    = WhiteSpace <#'(?i):skip'> WhiteSpace <AnyValue>;
+EndSkip = WhiteSpace <#'(?i):endskip'> WhiteSpace <AnyValue>;
 
 (* Scope *)
-OpenObject = <WhiteSpace> <'{'> <WhiteSpace> Key <WhiteSpace> <'}'> <AnyValue>
-EndObject  = <WhiteSpace> <'{'> <WhiteSpace> <'}'> <AnyValue>
+OpenObject = <WhiteSpace> <'{'> <WhiteSpace> Key <WhiteSpace> <'}'> <AnyValue>;
+EndObject  = <WhiteSpace> <'{'> <WhiteSpace> <'}'> <AnyValue>;
 
 (* Arrays *)
-OpenArray   = <WhiteSpace> <'['> <WhiteSpace> Key <WhiteSpace> <']'> <AnyValue>
-EndArray    = <WhiteSpace> <'['> <WhiteSpace> <']'> <AnyValue>
-ArrayMember = <WhiteSpace> <'*'> AnyValue
+OpenArray   = <WhiteSpace> <'['> <WhiteSpace> Key <WhiteSpace> <']'> <AnyValue>;
+EndArray    = <WhiteSpace> <'['> <WhiteSpace> <']'> <AnyValue>;
+ArrayMember = <WhiteSpace> <'*'> AnyValue;
 
 (* Ignore *)
-Ignore = WhiteSpace <#'(?i):ignore'> WhiteSpace <AnyValue>
+Ignore = WhiteSpace <#'(?i):ignore'> WhiteSpace <AnyValue>;
 
 (* Normal *)
-Normal = AnyValue
+Normal = AnyValue;
 
 (* Utility *)
-<AnyValue>   = #".*"
-<WhiteSpace> = #"[\t\s]*"
+<AnyValue>   = #".*";
+<WhiteSpace> = #"[\t\s]*";
