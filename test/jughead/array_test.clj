@@ -109,6 +109,25 @@
              (-> "[array]\n*Value1\nword key\\:value\n:end" parse :array)
              => ["Value1\nword key\\:value"])
 
+       (fact "arrays within a multi-line value breaks up the value"
+             (-> "[array]\n* value\n[array]\nmore text\n:end" parse :array first)
+             => "value")
+
+       (fact "objects within a multi-line value breaks up the value"
+             (-> "[array]\n* value\n{scope}\nmore text\n:end" parse :array first)
+             => "value")
+
+       (fact "key/values within a multi-line value do not break up the value"
+             (-> "[array]\n* value\nkey: value\nmore text\n:end" parse :array first)
+             => "value\nkey: value\nmore text")
+
+       (fact "bullets within a multi-line value break up the value"
+             (-> "[array]\n* value\n* value\nmore text\n:end" parse :array first)
+             => "value")
+
+       (fact "skips within a multi-line value do not break up the value"
+             (-> "[array]\n* value\n:skip\n:endskip\nmore text\n:end" parse :array first)
+             => "value\nmore text")
 
        (fact "arrays that are reopened add to existing array"
              (-> "[array]\n*Value\n[]\n[array]\n*Value" parse :array count)
