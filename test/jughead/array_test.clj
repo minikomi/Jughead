@@ -162,10 +162,29 @@
              (-> "[array]\nkey:value\nscope.key:value" parse :array keys count)
              => 1)
 
+       (fact "arrays within a multi-line value breaks up the value"
+             (-> "[array]\nkey:value\n[array]\nmore text\n:end" parse :array first :key)
+             => "value")
+
+       (fact "objects within a multi-line value breaks up the value"
+             (-> "[array]\nkey:value\n{array}\nmore text\n:end" parse :array first :key)
+             => "value")
+
+       (fact "key/values within a multi-line value break up the value";
+             (-> "[array]\nkey:value\nother: value\nmore text\n:end" parse :array first :key)
+             => "value")
+
+       (fact "bullets within a multi-line value do not break up the value"
+             (-> "[array]\nkey:value\n* value\nmore text\n:end" parse :array first :key)
+             => "value\n* value\nmore text")
+
+       (fact "skips within a multi-line value do not break up the value"
+             (-> "[array]\nkey:value\n:skip\n:endskip\nmore text\n:end" parse :array first :key)
+             => "value\nmore text")
+
        (fact "duplicate keys must match on dot-notation scope"
              (-> "[array]\nscope.key:value\nkey:value\notherscope.key:value" parse :array keys count)
              => 1)
-
 
        (fact "arrays that are reopened add to existing array"
              (-> "[array]\nkey:value\n[]\n[array]\nkey:value" parse :array count)
