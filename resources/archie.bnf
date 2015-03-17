@@ -1,8 +1,8 @@
 <ArchieLine> = Normal       |
-               KeyValuePair | End      |
-               Skip         | EndSkip  |
+               KeyValuePair | End       |
+               Skip         | EndSkip   |
                OpenObject   | EndObject |
-               OpenArray    | EndArray |
+               OpenArray    | EndArray  |
                ArrayMember  |
                Ignore
 
