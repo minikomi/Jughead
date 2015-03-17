@@ -134,13 +134,21 @@
           (let [k (transform (first line-data))
                 new-target (get-in result k {})
                 new-result (archie-assoc-in result k new-target)]
-            (recur (rest remain) new-result (assoc state :scope k)))
+            (recur (rest remain) new-result (assoc state 
+                                                   :scope k
+                                                   :buffer []
+                                                   :last-key []
+                                                   )))
 
           :OpenArray
           (let [k (transform (first line-data))
                 new-target (get-in result k [])
                 new-result (archie-assoc-in result k new-target)]
-            (recur (rest remain) new-result (assoc state :scope k)))
+            (recur (rest remain) new-result (assoc state 
+                                                   :scope k
+                                                   :buffer []
+                                                   :last-key []
+                                                   )))
 
           :EndObject
           (recur (rest remain) result (assoc state 
@@ -155,9 +163,12 @@
                                              :last-key []))
 
           :End
-          (let [new-result (archie-assoc-in result 
-                                            last-key 
-                                            (->> buffer (s/join "\n") (s/trim)))]
+          (let [new-result (if (and (not-empty last-key)
+                                    (not-empty buffer))
+                             (archie-assoc-in result 
+                                              last-key 
+                                              (->> buffer (s/join "\n") (s/trim)))
+                             result)]
             (recur (rest remain)
                    new-result
                    (assoc state

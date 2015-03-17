@@ -103,6 +103,26 @@
              (-> "key:value\n\\[[array]]\n:end" parse :key)
              => "value\n[array]")
 
+       (fact "arrays within a multi-line value breaks up the value"
+             (-> "key:value\ntext\n[array]\nmore text\n:end" parse :key)
+             => "value")
+
+       (fact "objects within a multi-line value breaks up the value"
+             (-> "key:value\ntext\n{scope}\nmore text\n:end" parse :key)
+             => "value")
+
+       (fact "Stray :end does not affect result"
+             (-> "key:value\ntext\n{scope}\nmore text\n:end" parse)
+             => {:scope {}, :key "value"})
+
+       (fact "bullets within a multi-line value do not break up the value"
+             (-> "key:value\ntext\n* value\nmore text\n:end" parse :key)
+             => "value\ntext\n* value\nmore text")
+
+       (fact "skips within a multi-line value do not break up the value"
+             (-> "key:value\ntext\n:skip\n:endskip\nmore text\n:end" parse :key)
+             => "value\ntext\nmore text")
+
        (fact "allows escaping initial backslash at the beginning of lines" 
              (-> "key:value\n\\\\:end\n:end" parse :key)
              => "value\n\\:end")
