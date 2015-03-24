@@ -1,4 +1,4 @@
-(defproject jughead "0.1.0-SNAPSHOT"
+(defproject org.clojars.minikomi/jughead "0.1.0"
   :description "Instaparse based parser for ArchieML"
   :url "https://github.com/minikomi/Jughead"
   :license {:name "Eclipse Public License"
@@ -6,4 +6,6 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [instaparse "1.3.4"]
                  [midje "1.6.3"]
-                 ])
+                 ]
+  :scm  {:name "git"
+         :url "https://github.com/minikomi/Jughead"})
