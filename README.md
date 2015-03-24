@@ -9,7 +9,7 @@ Jughead is available on
 in your project.clj dependencies:
 
 ```clojure
-[org.clojars.minikomi/jughead "0.1.0"]
+[org.clojars.minikomi/jughead "0.1.1"]
 ```
 
 And include the parse function from jughead.core:
