@@ -1,4 +1,4 @@
-(defproject org.clojars.minikomi/jughead "0.1.0"
+(defproject org.clojars.minikomi/jughead "0.1.1"
   :description "Instaparse based parser for ArchieML"
   :url "https://github.com/minikomi/Jughead"
   :license {:name "Eclipse Public License"
