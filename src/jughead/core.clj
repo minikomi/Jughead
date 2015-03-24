@@ -101,7 +101,7 @@
                   new-last-key (if (vector? target)
                                  ; testing for duplicate key in last item
                                  (if (or (empty? target) 
-                                         (get-in (first target) k))
+                                         (get-in (last target) k))
                                    (into (conj scope (count target)) k)
                                    (into (conj scope (dec (count target))) k))
                                  (into scope k))
